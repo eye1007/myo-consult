@@ -29,7 +29,7 @@
         .pick-btn { padding:18px 8px; border-radius:15px; border:2px solid #e2e8f0; background:#f8fafc; font-size:18px; font-weight:800; color:#334155; cursor:pointer; text-align:center; transition: 0.2s; }
         .pick-btn:active { transform: scale(0.95); }
         .pick-btn.selected { background:#2563eb !important; color:white !important; border-color:#2563eb !important; }
-        .btn-close-picker { background:#ef4444; color:white; font-size:20px; font-weight:900; padding:18px; border-radius:15px; border:none; cursor:pointer; mt-2; }
+        .btn-close-picker { background:#ef4444; color:white; font-size:20px; font-weight:900; padding:18px; border-radius:15px; border:none; cursor:pointer; margin-top: 8px; }
         
         .value-box { background: #f8fafc; border: 3px solid #eff6ff; padding: 18px 10px; border-radius: 18px; text-align: center; font-size: 22px; font-weight: 900; color: #1e293b; cursor: pointer; transition: 0.2s; height: 100%; display: flex; align-items: center; justify-content: center;}
         .value-box.empty { color: #94a3b8; font-size: 18px; font-weight: 700; background: white; border-color: #e2e8f0; }
@@ -51,17 +51,18 @@
         #input-section::-webkit-scrollbar { display: none; } /* 스크롤바 숨김 */
         #input-section.minimized { padding: 15px 25px; border-radius: 20px; border-width: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 10px; }
         #input-section.minimized #input-wrap { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: nowrap; min-width: max-content; }
-        #input-section.minimized #input-row { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; justify-content: flex-start; width: auto; flex: 1; }
+        #input-section.minimized #input-row { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; justify-content: flex-start; width: auto !important; flex: 1; }
         #input-section.minimized .input-col { flex: 0 1 auto; display: flex; flex-direction: row; align-items: center; gap: 6px; }
         #input-section.minimized label { margin-bottom: 0; font-size: 13px; white-space: nowrap; }
         #input-section.minimized .value-box { padding: 8px 12px; font-size: 16px; border-width: 2px; border-radius: 12px; height: auto; min-width: auto; white-space: nowrap; }
         #input-section.minimized .value-box.empty { font-size: 14px; }
         
-        #input-section.minimized #action-btn-wrap { width: auto; margin-top: 0; flex-direction: row; gap: 8px; align-items: center; flex-wrap: nowrap; }
+        #input-section.minimized #action-btn-wrap { width: auto !important; margin-top: 0; flex-direction: row; gap: 8px; align-items: center; flex-wrap: nowrap; }
         #input-section.minimized #analyze-btn { width: auto; padding: 8px 16px; font-size: 16px; border-radius: 12px; flex: none; white-space: nowrap; }
         #input-section.minimized #reset-btn { display: flex !important; width: auto; padding: 8px 16px; font-size: 16px; border-radius: 12px; flex: none; white-space: nowrap; }
         #input-section.minimized .btn-text-full { display: none; }
         #input-section.minimized .btn-text-short { display: inline; }
+        #input-section.minimized #first-screen-title, #input-section.minimized #first-screen-footer { display: none; }
 
         /* Chart Legend */
         .risk-legend { display: flex; flex-wrap: nowrap; justify-content: center; gap: 6px 12px; background: transparent; padding-top: 12px; margin-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 12px; font-weight: 800; white-space: nowrap; } .risk-legend-item { display: flex; align-items: center; gap: 4px; color: #475569; margin-bottom: 0; } .risk-line-dash { width: 16px; height: 0; border-top: 2px dashed; opacity: 0.8; } .btn-toggle { background: #fff; color: #22c55e; border: 2px solid #22c55e; padding: 12px; border-radius: 15px; font-size: 18px; font-weight: 900; cursor: pointer; transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; gap: 10px; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.1); width: 100%; } .btn-toggle:hover { background: #f0fdf4; } .btn-toggle.active { background: #22c55e; color: white; box-shadow: 0 6px 12px rgba(34, 197, 94, 0.3); }
@@ -71,37 +72,39 @@
     <!-- Header -->
     <div id="header-title" class="text-center space-y-3 mb-6">
         <h1 class="text-4xl font-black text-slate-800 tracking-tight">👓 우리 아이 근시 통합 상담 솔루션</h1>
-        <p class="text-slate-500 font-bold text-lg">KNHANES 표준 데이터 비교 및 정밀 근시 진행 예측</p>
+        <p class="text-slate-500 font-bold text-lg">국민건강영양조사(KNHANES) 표준 데이터 비교 및 정밀 근시 진행 예측</p>
     </div>
 
     <!-- Input Section -->
     <div id="input-section" class="bg-white p-6 md:p-8 rounded-3xl shadow-lg border border-slate-200 z-10 relative">
         <div id="input-wrap" class="flex flex-col gap-6">
-            <div id="input-row" class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+            <h2 id="first-screen-title" class="text-2xl font-black text-slate-800 text-center mt-2 mb-2">정밀 분석 기초 데이터</h2>
+            <div id="input-row" class="flex flex-col gap-4 w-full md:w-[40%] mx-auto">
                 <div class="input-col flex flex-col">
-                    <label class="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">나이</label>
                     <div id="box-age" class="value-box empty" onclick="openPicker('age', '나이 선택 (만 나이, 출생년도)')">나이 선택</div>
                 </div>
                 <div class="input-col flex flex-col">
-                    <label class="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">성별</label>
                     <div id="box-gender" class="value-box empty" onclick="openPicker('gender', '성별 선택')">성별 선택</div>
                 </div>
                 <div class="input-col flex flex-col">
-                    <label class="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">부모 근시 유무</label>
-                    <div id="box-parents" class="value-box empty" onclick="openPicker('parents', '부모 근시 유무 선택')">부모 근시 선택</div>
+                    <div id="box-parents" class="value-box empty" onclick="openPicker('parents', '부모 근시 유무 선택')">부모 근시 유무 선택</div>
                 </div>
                 <div class="input-col flex flex-col">
-                    <label class="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">현재 굴절도수 (SE)</label>
-                    <div id="box-diopter" class="value-box empty" onclick="openPicker('diopter', '현재 굴절도수 선택')">도수 선택</div>
+                    <div id="box-diopter" class="value-box empty" onclick="openPicker('diopter', '현재 굴절도수 선택')">현재 굴절 도수 선택</div>
                 </div>
             </div>
-            <div id="action-btn-wrap" class="flex flex-col w-full gap-4">
+            <div id="action-btn-wrap" class="flex flex-col w-full md:w-[40%] mx-auto gap-4">
                 <button id="analyze-btn" onclick="analyzeAverage()" class="w-full bg-slate-800 hover:bg-black text-white py-5 rounded-2xl text-2xl font-black shadow-lg transition-all active:scale-95 flex justify-center items-center gap-3">
                     📊 <span class="btn-text-full">현재 시력 분석 시작하기</span><span class="btn-text-short">재분석</span>
                 </button>
                 <button id="reset-btn" onclick="resetData()" style="display: none;" class="bg-slate-200 hover:bg-slate-300 text-slate-700 py-5 rounded-2xl text-2xl font-black shadow-lg transition-all active:scale-95 justify-center items-center gap-2">
                     🔄 조건 다시 입력
                 </button>
+            </div>
+            <div id="first-screen-footer" class="mt-2 pt-4 border-t border-dashed border-slate-300 text-center text-[11px] text-slate-400 font-bold leading-relaxed">
+                <p class="mb-1 text-slate-500">※ 본 분석은 국민건강영양조사(KNHANES) 표준 데이터 및 아래 연구 논문을 기반으로 아이젠트리의 자체 알고리즘을 통해 산출된 예측 결과입니다.</p>
+                <p class="font-normal text-[10px] opacity-80">Reference 1: Ophthalmic Physiologic Optic - 2024 - Naduvilath - Regional ethnic differences in ocular axial elongation and refractive</p>
+                <p class="font-normal text-[10px] opacity-80">Reference 2: Ophthalmic Physiologic Optic - 2025 - Tahhan - Factors predicting myopia incidence in China and Europe</p>
             </div>
         </div>
     </div>
@@ -329,7 +332,7 @@
 
     <!-- 출처/경고문 수정 및 논문 추가 -->
     <div class="mt-6 pt-4 border-t border-dashed border-slate-300 text-center text-[11px] text-slate-400 font-bold leading-relaxed" style="position: relative; z-index: 1;">
-        <p class="mb-1 text-slate-500">※ 본 분석은 KNHANES 표준 데이터 및 아래 연구 논문을 기반으로 아이젠트리의 자체 알고리즘을 통해 산출된 예측 결과입니다.</p>
+        <p class="mb-1 text-slate-500">※ 본 분석은 국민건강영양조사(KNHANES) 표준 데이터 및 아래 연구 논문을 기반으로 아이젠트리의 자체 알고리즘을 통해 산출된 예측 결과입니다.</p>
         <p class="font-normal text-[10px] opacity-80">Reference 1: Ophthalmic Physiologic Optic - 2024 - Naduvilath - Regional ethnic differences in ocular axial elongation and refractive</p>
         <p class="font-normal text-[10px] opacity-80">Reference 2: Ophthalmic Physiologic Optic - 2025 - Tahhan - Factors predicting myopia incidence in China and Europe</p>
     </div>
@@ -721,7 +724,7 @@
     function resetData() {
         appState = { age: null, gender: null, parents: null, diopter: null };
         const boxes = ['age', 'gender', 'parents', 'diopter'];
-        const labels = ['나이 선택', '성별 선택', '부모 근시 선택', '도수 선택'];
+        const labels = ['나이 선택', '성별 선택', '부모 근시 유무 선택', '현재 굴절 도수 선택'];
         boxes.forEach((b, i) => {
             const el = document.getElementById(`box-${b}`);
             el.innerText = labels[i];
