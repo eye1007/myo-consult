@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>아이젠트리 - 우리 아이 정밀 근시 시뮬레이터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        .hide { display: none !important; }
+        .fade-in { animation: fadeIn 0.7s ease-in-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 터치 친화적 피커 스타일 */
+        #picker-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.75); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(4px); }
+        .picker-box { background:white; padding:30px; border-radius:25px; width:95%; max-width:600px; max-height:80vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(0,0,0,0.3); }
+        .picker-title { font-size:24px; font-weight:900; color:#0f172a; margin-bottom:20px; text-align:center; }
+        .picker-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:12px; overflow-y:auto; padding-right:5px; margin-bottom:20px; }
+        .pick-btn { padding:18px 8px; border-radius:15px; border:2px solid #e2e8f0; background:#f8fafc; font-size:18px; font-weight:800; color:#334155; cursor:pointer; text-align:center; transition: 0.2s; }
+        .pick-btn:active { transform: scale(0.95); }
+        .pick-btn.selected { background:#2563eb !important; color:white !important; border-color:#2563eb !important; }
+        .btn-close-picker { background:#ef4444; color:white; font-size:20px; font-weight:900; padding:18px; border-radius:15px; border:none; cursor:pointer; mt-2; }
+        
+        .value-box { background: #f8fafc; border: 3px solid #eff6ff; padding: 18px 10px; border-radius: 18px; text-align: center; font-size: 22px; font-weight: 900; color: #1e293b; cursor: pointer; transition: 0.2s; height: 100%; display: flex; align-items: center; justify-content: center;}
+        .value-box.empty { color: #94a3b8; font-size: 18px; font-weight: 700; background: white; border-color: #e2e8f0; }
+        .value-box:active { background: #e2e8f0; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.3); border-radius: 10px; }
+
+        /* UI Minimization Animations */
+        #main-wrapper { transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 10vh; padding-bottom: 50px; }
+        #header-title { transition: all 0.5s ease; transform-origin: top; overflow: hidden; opacity: 1; height: 100px; }
+        #header-title.minimized { height: 0 !important; opacity: 0; margin-bottom: 0; padding: 0; transform: scaleY(0); }
+        
+        .btn-text-full { display: inline; }
+        .btn-text-short { display: none; }
+        
+        #input-wrap { transition: all 0.5s ease; }
+        #input-section { transition: all 0.5s ease; }
+        #input-section.minimized { padding: 15px 25px; border-radius: 20px; border-width: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 10px; }
+        #input-section.minimized #input-wrap { flex-direction: row; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        #input-section.minimized #input-row { display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px; justify-content: center; width: auto; flex: 1; }
+        #input-section.minimized .input-col { flex: 0 1 auto; display: flex; flex-direction: row; align-items: center; gap: 8px; }
+        #input-section.minimized label { margin-bottom: 0; font-size: 14px; white-space: nowrap; }
+        #input-section.minimized .value-box { padding: 8px 15px; font-size: 18px; border-width: 2px; border-radius: 12px; height: auto; min-width: 100px;}
+        #input-section.minimized .value-box.empty { font-size: 15px; }
+        
+        #input-section.minimized #action-btn-wrap { width: auto; margin-top: 0; flex-direction: row; gap: 10px; align-items: center; }
+        #input-section.minimized #analyze-btn { width: auto; padding: 10px 20px; font-size: 18px; border-radius: 12px; flex: none; }
+        #input-section.minimized #reset-btn { display: flex !important; width: auto; padding: 10px 20px; font-size: 18px; border-radius: 12px; flex: none; }
+        #input-section.minimized .btn-text-full { display: none; }
+        #input-section.minimized .btn-text-short { display: inline; }
+
+        /* Chart Legend */
+        .risk-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 15px; background: transparent; padding-top: 12px; margin-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 13px; font-weight: 700; } .risk-legend-item { display: flex; align-items: center; gap: 6px; color: #475569; margin-bottom: 0; } .risk-line-dash { width: 20px; height: 0; border-top: 2px dashed; opacity: 0.8; } .btn-toggle { background: #fff; color: #22c55e; border: 2px solid #22c55e; padding: 12px; border-radius: 15px; font-size: 18px; font-weight: 900; cursor: pointer; transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; gap: 10px; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.1); width: 100%; } .btn-toggle:hover { background: #f0fdf4; } .btn-toggle.active { background: #22c55e; color: white; box-shadow: 0 6px 12px rgba(34, 197, 94, 0.3); } </style></head><body class="p-4 md:p-6 text-slate-800 flex flex-col min-h-screen">
+
+<div id="main-wrapper" class="max-w-[1400px] mx-auto w-full flex-1 flex flex-col">
+    <!-- Header -->
+    <div id="header-title" class="text-center space-y-3 mb-6">
+        <h1 class="text-4xl font-black text-slate-800 tracking-tight">👓 우리 아이 근시 통합 상담 솔루션</h1>
+        <p class="text-slate-500 font-bold text-lg">KNHANES 표준 데이터 비교 및 정밀 근시 진행 예측</p>
+    </div>
+
+    <!-- Input Section -->
+    <div id="input-section" class="bg-white p-6 md:p-8 rounded-3xl shadow-lg border border-slate-200 z-10 relative">
+        <div id="input-wrap" class="flex flex-col gap-6">
+            <div id="input-row" class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                <div class="input-col flex flex-col">
+                    <label class="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">나이</label>
+                    <div id="box-age" class="value-box empty" onclick="openPicker('age', '나이 선택 (만 나이, 출생년도)')">나이 선택</div>
+                </div>
+                <div class="input-col flex flex-col">
+                    <label class="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">성별</label>
+                    <div id="box-gender" class="value-box empty" onclick="openPicker('gender', '성별 선택')">성별 선택</div>
+                </div>
+                <div class="input-col flex flex-col">
+                    <label class="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">부모 근시 유무</label>
+                    <div id="box-parents" class="value-box empty" onclick="openPicker('parents', '부모 근시 유무 선택')">부모 근시 선택</div>
+                </div>
+                <div class="input-col flex flex-col">
+                    <label class="block text-sm font-black text-slate-400 mb-2 uppercase tracking-widest">현재 굴절도수 (SE)</label>
+                    <div id="box-diopter" class="value-box empty" onclick="openPicker('diopter', '현재 굴절도수 선택')">도수 선택</div>
+                </div>
+            </div>
+            <div id="action-btn-wrap" class="flex flex-col w-full gap-4">
+                <button id="analyze-btn" onclick="analyzeAverage()" class="w-full bg-slate-800 hover:bg-black text-white py-5 rounded-2xl text-2xl font-black shadow-lg transition-all active:scale-95 flex justify-center items-center gap-3">
+                    📊 <span class="btn-text-full">현재 시력 분석 시작하기</span><span class="btn-text-short">재분석</span>
+                </button>
+                <button id="reset-btn" onclick="resetData()" style="display: none;" class="bg-slate-200 hover:bg-slate-300 text-slate-700 py-5 rounded-2xl text-2xl font-black shadow-lg transition-all active:scale-95 justify-center items-center gap-2">
+                    🔄 조건 다시 입력
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-wrapper" class="w-full">
+    <!-- 1단계: 평균 비교 섹션 -->
+    <div id="average-result-section" class="hide grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
+        <!-- Left: Average Chart -->
+        <div class="lg:col-span-7 bg-white p-6 rounded-3xl shadow-lg border-t-8 border-blue-500 flex flex-col h-[580px]">
+            <h3 class="text-xl font-black mb-4 flex items-center shrink-0"><span class="mr-3">📈</span> 1단계: 또래 아이들 평균 시력 비교</h3>
+            <div class="flex-1 w-full flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div class="relative flex-1 w-full min-h-0">
+                    <canvas id="avgChart"></canvas>
+                </div>
+                <div class="risk-legend shrink-0">
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도 근시 (-0.50D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도 근시 (-3.00D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도 근시 (-6.00D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(147, 51, 234, 0.8);"></div> 🆘 초고도 근시 (-9.00D)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Risk & Counseling -->
+        <div class="lg:col-span-5 space-y-5 flex flex-col h-[580px]">
+            <div id="risk-card" class="p-5 rounded-3xl shadow-lg border shrink-0 flex flex-col gap-3">
+                <h3 class="text-lg font-black flex items-center text-slate-800"><span class="mr-2">🚨</span> 현재 위험도 진단</h3>
+                <div class="flex items-center justify-between bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-white/50 shadow-sm">
+                    <div class="text-center w-1/3">
+                        <p class="text-[11px] font-bold text-slate-500 mb-1"><span id="res-age-label"></span>세 평균</p>
+                        <p class="text-xl font-black text-slate-400" id="res-avg-diopter">0.00D</p>
+                    </div>
+                    <div class="text-lg font-black text-slate-300">VS</div>
+                    <div class="text-center w-1/3">
+                        <p class="text-[11px] font-bold text-blue-600 mb-1">우리 아이</p>
+                        <p class="text-2xl font-black text-blue-600" id="res-child-diopter">0.00D</p>
+                    </div>
+                </div>
+                <div class="text-center px-2"><p class="text-sm font-bold text-slate-700" id="res-diff-text"></p></div>
+                <div class="bg-white/80 p-3 rounded-xl border border-white shadow-sm mt-1">
+                    <p id="risk-level" class="text-lg font-black mb-1"></p>
+                    <p id="risk-desc" class="text-xs font-bold leading-snug"></p>
+                </div>
+            </div>
+
+            <!-- 전문 솔루션 내용 간소화 -->
+            <div class="bg-slate-800 text-white p-5 rounded-3xl shadow-xl border-b-[6px] border-blue-600 relative flex-1 flex flex-col overflow-hidden justify-center">
+                <h3 class="text-lg font-black mb-3 text-blue-400 flex items-center relative z-10 shrink-0"><span class="mr-2">💡</span> 맞춤 솔루션 제안</h3>
+                <div class="space-y-2 relative z-10 overflow-y-auto custom-scrollbar pr-1 pb-1">
+                    <div id="golden-time-box" class="hide bg-amber-500/20 border border-amber-500/50 p-3 rounded-xl flex items-center gap-3">
+                        <span class="text-2xl">⏳</span>
+                        <p class="text-amber-100 font-bold text-[13px] leading-tight">만 9세 이전은 <b>시력 관리 골든타임</b>입니다.</p>
+                    </div>
+                    <div class="bg-slate-700/50 p-3 rounded-xl flex items-center gap-3">
+                        <span class="text-2xl">📱</span>
+                        <p class="text-slate-200 font-bold text-[13px] leading-tight">디지털 기기 사용으로 <b>근시 진행이 1.5배 가속</b>되고 있습니다.</p>
+                    </div>
+                    <div class="bg-slate-700/50 p-3 rounded-xl flex items-center gap-3">
+                        <span class="text-2xl">🏥</span>
+                        <p class="text-slate-200 font-bold text-[13px] leading-tight"><b>6개월 정기 검진</b>과 적극적인 억제 관리를 권장합니다.</p>
+                    </div>
+                </div>
+                
+                <!-- 진행 예측 넘어가기 버튼 -->
+                <button onclick="showPrediction()" class="w-full mt-3 bg-indigo-500 hover:bg-indigo-600 text-white py-4 rounded-xl text-lg font-black shadow-lg transition-all active:scale-95 flex justify-center items-center gap-2 relative z-10 shrink-0">
+                    🔮 2단계: 미래 시력 예측 시뮬레이션 보기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2단계: 진행 예측 섹션 -->
+    <div id="prediction-result-section" class="hide grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+        <div class="lg:col-span-8 bg-white p-6 rounded-3xl shadow-lg border-t-8 border-indigo-500 flex flex-col h-[600px] relative">
+            <h3 class="text-xl font-black mb-4 flex items-center shrink-0"><span class="mr-3">📉</span> 2단계: 18세 기준 근시 진행 예측 그래프</h3>
+            <div class="flex-1 w-full flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div class="relative flex-1 w-full min-h-0">
+                    <canvas id="predChart"></canvas>
+                </div>
+                <div class="risk-legend shrink-0 mt-2">
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도 근시 (-0.50D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도 근시 (-3.00D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도 근시 (-6.00D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(147, 51, 234, 0.8);"></div> 🆘 초고도 근시 (-9.00D)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-4 space-y-4 flex flex-col h-[600px]">
+            <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-200 flex flex-col justify-start flex-1">
+                <h3 class="text-2xl font-black text-slate-800 mb-6 text-center border-b pb-4">📊 예측 결과 요약 (18세 기준)</h3>
+                <div class="bg-slate-50 p-4 rounded-2xl border-l-8 border-red-500 mb-3">
+                    <div class="text-sm color-slate-500 font-bold mb-1">일반 렌즈 착용 시 최종 예상</div>
+                    <div class="text-3xl font-black text-red-500" id="sum-normal">-0.00 D</div>
+                </div>
+
+                <button id="btn-toggle-control" class="btn-toggle my-2" onclick="toggleControl()">
+                    ✨ 근시 억제 렌즈 사용 시 변화 보기
+                </button>
+                
+                <div id="panel-control" class="bg-green-50 p-4 rounded-2xl border-l-8 border-green-500 transition-all duration-500 mb-3" style="opacity:0; transform:translateY(-10px); display:none;">
+                    <div class="text-sm color-slate-500 font-bold mb-1">억제 렌즈 착용 시 최종 예상</div>
+                    <div class="text-3xl font-black text-green-600" id="sum-control">-0.00 D</div>
+                    <div class="mt-3 pt-3 border-t border-green-200/50">
+                        <div class="text-xs font-bold text-slate-500">억제 효과 분석</div>
+                        <div class="text-lg font-black text-amber-600 mt-1">도수 억제 <span id="sum-diff">+0.00 D</span> (<span id="sum-pct">0%</span>)</div>
+                    </div>
+                </div>
+
+                <!-- 이름 입력 및 다운로드 -->
+                <div id="report-action-area" class="mt-auto pt-4 border-t border-slate-100 flex flex-row gap-3">
+                    <input type="text" id="customer-name" placeholder="이름 입력 (선택)" class="w-3/4 p-3 rounded-xl font-bold text-base outline-none border-2 border-slate-100 focus:border-blue-500 bg-slate-50 text-slate-900 text-center">
+                    <button onclick="openDownloadModal()" title="분석 리포트 이미지 저장" class="w-1/4 bg-slate-800 hover:bg-black text-white py-3 rounded-xl font-black text-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center">
+                        🖨️
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div> <!-- #result-wrapper 끝 -->
+</div>
+
+<!-- 피커 모달 -->
+<div id="picker-overlay" onclick="closePicker()">
+    <div class="picker-box" onclick="event.stopPropagation()">
+        <div class="picker-title" id="picker-title">선택</div>
+        <div class="picker-grid" id="picker-grid-content"></div>
+        <button class="btn-close-picker" onclick="closePicker()">닫기</button>
+    </div>
+</div>
+
+<!-- 다운로드 확인 모달 -->
+<div id="download-modal" class="hide fixed inset-0 bg-slate-900/70 z-[10000] flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white p-8 rounded-3xl w-[90%] max-w-sm text-center shadow-2xl transform transition-all scale-100">
+        <div class="text-5xl mb-4">🖨️</div>
+        <h3 class="text-2xl font-black text-slate-800 mb-2">리포트 다운로드</h3>
+        <p class="text-slate-500 font-bold mb-6">분석 리포트를 이미지로 저장하시겠습니까?</p>
+        <div class="flex gap-3">
+            <button onclick="closeDownloadModal()" class="flex-1 py-3 bg-slate-100 text-slate-500 font-black rounded-xl hover:bg-slate-200 transition-all">취소</button>
+            <button onclick="executeDownload()" class="flex-1 py-3 bg-blue-600 text-white font-black rounded-xl shadow-lg hover:bg-blue-700 transition-all">저장하기</button>
+        </div>
+    </div>
+</div>
+
+<!-- [추가] 리포트 생성을 위한 숨겨진 컨테이너 -->
+<div id="report-generator" style="position: absolute; left: -9999px; top: 0; width: 1100px; background: white; padding: 50px; box-sizing: border-box;">
+    <!-- 워터마크 로고 -->
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.05; pointer-events: none; z-index: 0;">
+        <img src="https://github.com/eye1007/calc/blob/main/logo.png?raw=true" style="width: 600px;">
+    </div>
+    
+    <div id="report-header-content"></div>
+
+    <!-- 1단계 타이틀 추가 -->
+    <h3 class="text-xl font-black mt-2 mb-3 text-slate-700" style="position: relative; z-index: 1;">1단계: 또래 평균 비교</h3>
+
+    <!-- 1단계: 평균 비교 섹션 -->
+    <div id="report-average-section" class="grid grid-cols-12 gap-5">
+        <div class="col-span-7 h-[420px] bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <canvas id="reportAvgChartCanvas"></canvas>
+        </div>
+        <div class="col-span-5" id="report-average-summary">
+        </div>
+    </div>
+
+    <!-- 2단계 타이틀 추가 -->
+    <h3 class="text-xl font-black mt-6 mb-3 text-slate-700" style="position: relative; z-index: 1;">2단계: 미래 시력 예측</h3>
+
+    <!-- 2단계: 진행 예측 섹션 -->
+    <div id="report-prediction-section" class="grid grid-cols-12 gap-5 mt-2">
+        <div class="col-span-8 h-[450px] bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <canvas id="reportPredChartCanvas"></canvas>
+        </div>
+        <div class="col-span-4" id="report-prediction-summary">
+        </div>
+    </div>
+
+    <!-- 출처/경고문 수정 및 논문 추가 -->
+    <div class="mt-6 pt-4 border-t border-dashed border-slate-300 text-center text-[11px] text-slate-400 font-bold leading-relaxed" style="position: relative; z-index: 1;">
+        <p class="mb-1 text-slate-500">※ 본 분석은 KNHANES 표준 데이터 및 아래 연구 논문을 기반으로 아이젠트리의 자체 알고리즘을 통해 산출된 예측 결과입니다.</p>
+        <p class="font-normal text-[10px] opacity-80">Reference 1: Ophthalmic Physiologic Optic - 2024 - Naduvilath - Regional ethnic differences in ocular axial elongation and refractive</p>
+        <p class="font-normal text-[10px] opacity-80">Reference 2: Ophthalmic Physiologic Optic - 2025 - Tahhan - Factors predicting myopia incidence in China and Europe</p>
+    </div>
+</div>
+
+
+<script>
+    let appState = {
+        age: null,
+        gender: null,
+        parents: null,
+        diopter: null
+    };
+
+    // 옵션 설정
+    const currentYear = new Date().getFullYear();
+    const pickerOptions = {
+        age: Array.from({length: 15}, (_, i) => {
+            const ageVal = i + 4;
+            return { val: ageVal, label: `${ageVal}세 - ${currentYear - ageVal}년` };
+        }), // 4세 ~ 18세
+        gender: [ {val: 0, label: '여성'}, {val: 0.014, label: '남성'} ],
+        parents: [ {val: 0, label: '없음'}, {val: 0.18, label: '1명'}, {val: 0.48, label: '2명 모두'} ],
+        diopter: Array.from({length: 49}, (_, i) => { // +2.00 ~ -10.00
+            let v = 2.0 - (i * 0.25);
+            return { val: v, label: (v > 0 ? '+' : '') + v.toFixed(2) + ' D' };
+        })
+    };
+
+    function openPicker(type, title) {
+        document.getElementById('picker-title').innerText = title;
+        const grid = document.getElementById('picker-grid-content');
+        grid.innerHTML = '';
+        
+        // 도수 선택일 경우 1줄에 4개씩 나오도록 그리드 컬럼 강제 설정
+        if (type === 'diopter') {
+            grid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+        } else {
+            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+        }
+
+        pickerOptions[type].forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = `pick-btn ${appState[type] === opt.val ? 'selected' : ''}`;
+            // 색상 적용 (도수일 경우)
+            if (type === 'diopter') {
+                if (opt.val > 0) btn.style.color = '#ef4444';
+                else if (opt.val < 0) btn.style.color = '#3b82f6';
+            }
+            btn.innerText = opt.label;
+            btn.onclick = () => {
+                appState[type] = opt.val;
+                const box = document.getElementById(`box-${type}`);
+                box.innerText = opt.label;
+                box.classList.remove('empty');
+                
+                // 도수 박스 색상 반영
+                if(type === 'diopter') {
+                    box.style.color = opt.val > 0 ? '#ef4444' : (opt.val < 0 ? '#3b82f6' : '#1e293b');
+                }
+                
+                // 다음 단계로 자동 이동 (연쇄 클릭)
+                if (type === 'age') {
+                    openPicker('gender', '성별 선택');
+                } else if (type === 'gender') {
+                    openPicker('parents', '부모 근시 유무 선택');
+                } else if (type === 'parents') {
+                    openPicker('diopter', '현재 굴절도수 선택');
+                } else {
+                    closePicker();
+                }
+            };
+            grid.appendChild(btn);
+        });
+        
+        document.getElementById('picker-overlay').style.display = 'flex';
+    }
+    function closePicker() { document.getElementById('picker-overlay').style.display = 'none'; }
+
+    // KNHANES 기준 나이별 평균 굴절도수
+    const AVG_DIOPTER_DATA = { 4:0.27, 5:0.27, 6:-0.50, 7:-0.50, 8:-0.97, 9:-1.45, 10:-1.68, 11:-1.91, 12:-2.15, 13:-2.31, 14:-2.47, 15:-2.63, 16:-2.72, 17:-2.81, 18:-2.90 };
+    
+    function getAverageDiopter(age) {
+        if (AVG_DIOPTER_DATA[age] !== undefined) return AVG_DIOPTER_DATA[age];
+        const ages = Object.keys(AVG_DIOPTER_DATA).map(Number).sort((a, b) => a - b);
+        if (age < ages[0]) return AVG_DIOPTER_DATA[ages[0]];
+        if (age > ages[ages.length - 1]) return AVG_DIOPTER_DATA[ages[ages.length - 1]];
+        for (let i = 0; i < ages.length - 1; i++) {
+            if (age > ages[i] && age < ages[i+1]) {
+                const ratio = (age - ages[i]) / (ages[i+1] - ages[i]);
+                return AVG_DIOPTER_DATA[ages[i]] + ratio * (AVG_DIOPTER_DATA[ages[i+1]] - AVG_DIOPTER_DATA[ages[i]]);
+            }
+        }
+        return 0;
+    }
+
+    function formatD(d) { return (d > 0 ? "+" : "") + d.toFixed(2) + "D"; }
+
+    let avgChart, predChart;
+    let showControl = false;
+
+    // 1단계 분석 (평균 비교)
+    function analyzeAverage() {
+        if (Object.values(appState).includes(null)) {
+            alert("모든 항목(나이, 성별, 부모근시, 굴절도수)을 선택해주세요.");
+            return;
+        }
+
+        const age = appState.age;
+        const diopter = appState.diopter;
+        const avgDiopter = getAverageDiopter(age);
+        const diff = diopter - avgDiopter;
+
+        // 값 반영
+        document.getElementById('res-age-label').innerText = age;
+        document.getElementById('res-avg-diopter').innerText = formatD(avgDiopter);
+        document.getElementById('res-child-diopter').innerText = formatD(diopter);
+
+        let diffText = diff < 0 ? 
+            `평균 대비 <span class="text-red-500 font-black text-xl">${Math.abs(diff).toFixed(2)}D</span> 더 근시가 진행된 상태입니다.` : 
+            `평균 대비 <span class="text-blue-500 font-black text-xl">+${Math.abs(diff).toFixed(2)}D</span> 양호한 상태입니다.`;
+        document.getElementById('res-diff-text').innerHTML = diffText;
+
+        // 위험도 판별
+        let riskLevel, riskDesc, bgColor, borderColor, textColor;
+        if (diff <= -1.0) {
+            riskLevel = "상위 10% (고위험군)";
+            riskDesc = "또래 대비 근시 진행이 <b>매우 빠릅니다</b>. 고도근시 진입 확률이 아주 높으므로 즉각적이고 적극적인 억제 관리가 필요합니다.";
+            bgColor = "bg-red-50"; borderColor = "border-red-200"; textColor = "text-red-600";
+        } else if (diff <= -0.5) {
+            riskLevel = "빠른 편 (주의)";
+            riskDesc = "평균보다 근시가 <b>조금 빠르게</b> 나타나고 있습니다. 지금부터 올바른 습관과 시력 교정을 병행하면 늦출 수 있습니다.";
+            bgColor = "bg-orange-50"; borderColor = "border-orange-200"; textColor = "text-orange-600";
+        } else if (diff <= 0.5) {
+            riskLevel = "대한민국 평균 수준";
+            riskDesc = "한국 아이들의 <b>표준 속도</b>와 비슷합니다. 다만 동아시아는 근시 유병률이 높으므로 꾸준한 정기 검진을 권장합니다.";
+            bgColor = "bg-green-50"; borderColor = "border-green-200"; textColor = "text-green-600";
+        } else {
+            riskLevel = "하위 10% (저위험군)";
+            riskDesc = "평균에 비해 <b>시력이 아주 잘 유지</b>되고 있습니다. 현재의 좋은 생활 습관을 이어나가시기 바랍니다.";
+            bgColor = "bg-blue-50"; borderColor = "border-blue-200"; textColor = "text-blue-600";
+        }
+
+        const riskCard = document.getElementById('risk-card');
+        riskCard.className = `p-5 rounded-3xl shadow-lg border shrink-0 flex flex-col gap-3 ${bgColor} ${borderColor}`;
+        document.getElementById('risk-level').className = `text-xl font-black mb-1 ${textColor}`;
+        document.getElementById('risk-level').innerText = riskLevel;
+        document.getElementById('risk-desc').innerHTML = `<span class="${textColor.replace('600', '800')}">${riskDesc}</span>`;
+
+        // 골든타임 경고 (9세 이하)
+        if (age <= 9) document.getElementById('golden-time-box').classList.remove('hide');
+        else document.getElementById('golden-time-box').classList.add('hide');
+
+        // UI 변경 애니메이션
+        document.getElementById('main-wrapper').style.marginTop = '0';
+        document.getElementById('header-title').classList.add('minimized');
+        document.getElementById('input-section').classList.add('minimized');
+        document.getElementById('prediction-result-section').classList.add('hide'); // 예측 창은 아직 숨김
+        
+        const avgSec = document.getElementById('average-result-section');
+        avgSec.classList.remove('hide');
+        avgSec.classList.add('fade-in');
+
+        drawAvgChart(age, diopter);
+        setTimeout(() => avgSec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    }
+
+    // 2단계 분석 (미래 시력 예측)
+    function showPrediction() {
+        const predSec = document.getElementById('prediction-result-section');
+        predSec.classList.remove('hide');
+        predSec.classList.add('fade-in');
+        
+        // 컨트롤 버튼 초기화
+        showControl = false;
+        const btn = document.getElementById('btn-toggle-control');
+        btn.classList.remove('active');
+        btn.innerHTML = `✨ 근시 억제 렌즈 사용 시 변화 보기`;
+        const pControl = document.getElementById('panel-control');
+        pControl.style.opacity = '0';
+        pControl.style.transform = 'translateY(-10px)';
+        setTimeout(() => pControl.style.display = 'none', 300);
+
+        drawPredChart();
+        setTimeout(() => predSec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    }
+
+    // 가로 기준선 플러그인 (공용)
+    const riskLinePlugin = {
+        id: 'riskLine',
+        beforeDraw: (chart) => {
+            const { ctx, chartArea: { left, right, top, bottom }, scales: { y } } = chart;
+            ctx.save();
+            const drawLine = (val, color) => {
+                const yPos = y.getPixelForValue(val);
+                if (yPos >= top && yPos <= bottom) {
+                    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+                    ctx.moveTo(left, yPos); ctx.lineTo(right, yPos); ctx.stroke();
+                }
+            };
+            drawLine(-0.5, 'rgba(59, 130, 246, 0.4)');
+            drawLine(-3.0, 'rgba(217, 119, 6, 0.4)');
+            drawLine(-6.0, 'rgba(239, 68, 68, 0.4)');
+            drawLine(-9.0, 'rgba(147, 51, 234, 0.4)'); 
+            ctx.restore();
+        }
+    };
+
+    function drawAvgChart(childAge, childDiopter) {
+        const ctx = document.getElementById('avgChart').getContext('2d');
+        const ages = Object.keys(AVG_DIOPTER_DATA).map(Number).sort((a,b)=>a-b);
+        const avgData = ages.map(a => AVG_DIOPTER_DATA[a]);
+        const childData = ages.map(a => a === childAge ? childDiopter : null);
+        const yMin = Math.floor(Math.min(...avgData, childDiopter, -9)) - 1;
+
+        if (avgChart) avgChart.destroy();
+        avgChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ages.map(a => a + '세'),
+                datasets: [
+                    { label: '한국 평균', data: avgData, borderColor: '#334155', backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, borderDash: [6, 4], tension: 0.4 },
+                    { label: '현재 위치', data: childData, backgroundColor: '#3b82f6', borderColor: '#3b82f6', borderWidth: 0, pointRadius: 8, pointHoverRadius: 10, showLine: false }
+                ]
+            },
+            plugins: [riskLinePlugin],
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { reverse: true, max: 2, min: yMin, title: { display: false }, ticks: { font: { size: 13, weight: 'bold' } } },
+                    x: { ticks: { font: { size: 13, weight: 'bold' } } }
+                },
+                plugins: { legend: { position: 'top', labels: { font: { size: 13, weight: 'bold' } } } }
+            }
+        });
+    }
+
+    function calculatePrediction() {
+        const startAge = appState.age;
+        const startSE = appState.diopter;
+        const genderEffect = appState.gender;
+        const parentEffect = appState.parents;
+
+        let labels = [], means = [], lowers = [], uppers = [], controlMeans = [], controlLowers = [], controlUppers = [];
+        let currentSE = startSE, currentControlSE = startSE;
+
+        for (let age = startAge; age <= 18; age++) {
+            let t = age - startAge;
+            labels.push(age + '세');
+            means.push(currentSE.toFixed(2));
+            controlMeans.push(currentControlSE.toFixed(2));
+            
+            let spread = 0.48 * Math.sqrt(t); 
+            let controlSpread = spread * 0.5;
+
+            lowers.push((currentSE - spread).toFixed(2));
+            uppers.push((currentSE + spread).toFixed(2));
+            controlLowers.push((currentControlSE - controlSpread).toFixed(2));
+            controlUppers.push((currentControlSE + controlSpread).toFixed(2));
+
+            let delta = (-1.119 - 0.702 + genderEffect + (0.107 * age) - (0.002 * Math.pow(age, 2)) + (0.036 * age) + (0.042 * currentSE)) * 0.84;
+            delta -= (parentEffect * 0.05);
+            if (age >= 16) delta *= 0.5;
+
+            currentSE += delta;
+            currentControlSE += (delta * 0.41); 
+        }
+        return { labels, means, lowers, uppers, controlMeans, controlLowers, controlUppers };
+    }
+
+    function toggleControl() {
+        showControl = !showControl;
+        const btn = document.getElementById('btn-toggle-control');
+        const pControl = document.getElementById('panel-control');
+        
+        if (showControl) {
+            btn.classList.add('active');
+            btn.innerHTML = `일반 진행 그래프만 보기`;
+            pControl.style.display = 'block';
+            setTimeout(() => { pControl.style.opacity = '1'; pControl.style.transform = 'translateY(0)'; }, 50);
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = `✨ 근시 억제 렌즈 사용 시 변화 보기`;
+            pControl.style.opacity = '0';
+            pControl.style.transform = 'translateY(-10px)';
+            setTimeout(() => pControl.style.display = 'none', 300);
+        }
+        drawPredChart();
+    }
+
+    function drawPredChart() {
+        const data = calculatePrediction();
+        const ctx = document.getElementById('predChart').getContext('2d');
+        
+        const finalNormalSE = parseFloat(data.means[data.means.length - 1]);
+        const finalNormalLower = parseFloat(data.lowers[data.lowers.length - 1]);
+        const finalNormalUpper = parseFloat(data.uppers[data.uppers.length - 1]);
+        const finalControlSE = parseFloat(data.controlMeans[data.controlMeans.length - 1]);
+        const startSE = appState.diopter;
+        
+        const progNormal = finalNormalSE - startSE;
+        const progControl = finalControlSE - startSE;
+        const diff = Math.abs(progNormal - progControl);
+        const pct = Math.abs(progNormal) > 0 ? Math.round((diff / Math.abs(progNormal)) * 100) : 0;
+
+        document.getElementById('sum-normal').innerHTML = `${formatD(finalNormalSE)} <div class="text-lg font-bold text-red-400 mt-1">오차범위: ${formatD(finalNormalUpper)} ~ ${formatD(finalNormalLower)}</div>`;
+        document.getElementById('sum-control').innerText = formatD(finalControlSE);
+        document.getElementById('sum-diff').innerText = `+${diff.toFixed(2)} D`;
+        document.getElementById('sum-pct').innerText = `${pct}%`;
+
+        const datasets = [
+            { label: '일반 렌즈 진행', data: data.means, borderColor: '#ef4444', borderWidth: 4, fill: false, pointRadius: 4, tension: 0.2 },
+            { label: '일반 하한', data: data.lowers, borderColor: 'transparent', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: '+1', pointRadius: 0 },
+            { label: '일반 상한', data: data.uppers, borderColor: 'transparent', fill: false, pointRadius: 0 },
+            { label: '억제 렌즈 착용', data: data.controlMeans, borderColor: '#22c55e', borderWidth: 4, fill: false, pointRadius: 4, hidden: !showControl, tension: 0.2 },
+            { label: '억제 하한', data: data.controlLowers, borderColor: 'transparent', backgroundColor: 'rgba(34, 197, 94, 0.12)', fill: '+1', pointRadius: 0, hidden: !showControl },
+            { label: '억제 상한', data: data.controlUppers, borderColor: 'transparent', fill: false, pointRadius: 0, hidden: !showControl }
+        ];
+
+        const yMin = Math.floor(Math.min(...data.lowers, ...data.controlLowers)) - 1;
+        const yMax = Math.max(1, Math.ceil(Math.max(...data.uppers, ...data.controlUppers)));
+
+        if (predChart) {
+            predChart.data.labels = data.labels;
+            predChart.data.datasets = datasets;
+            predChart.options.scales.y.min = yMin;
+            predChart.options.scales.y.max = yMax;
+            predChart.update();
+        } else {
+            predChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: data.labels, datasets: datasets },
+                plugins: [riskLinePlugin],
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    animation: { duration: 1000, easing: 'easeOutQuart' },
+                    scales: {
+                        y: { min: yMin, max: yMax, ticks: { font: { size: 16, weight: 'bold' } } },
+                        x: { ticks: { font: { size: 16, weight: 'bold' } } }
+                    },
+                    plugins: { 
+                        legend: { 
+                            position: 'top', align: 'start',
+                            labels: { 
+                                font: { size: 15, weight: 'bold' }, 
+                                filter: (item) => !item.text.includes('상한') && !item.text.includes('하한') && (!showControl ? !item.text.includes('억제') : true)
+                            } 
+                        } 
+                    }
+                }
+            });
+        }
+    }
+
+    function resetData() {
+        appState = { age: null, gender: null, parents: null, diopter: null };
+        const boxes = ['age', 'gender', 'parents', 'diopter'];
+        const labels = ['나이 선택', '성별 선택', '부모 근시 선택', '도수 선택'];
+        boxes.forEach((b, i) => {
+            const el = document.getElementById(`box-${b}`);
+            el.innerText = labels[i];
+            el.classList.add('empty');
+            el.style.color = '';
+        });
+        
+        document.getElementById('average-result-section').classList.add('hide');
+        document.getElementById('prediction-result-section').classList.add('hide');
+        document.getElementById('customer-name').value = '';
+        
+        document.getElementById('main-wrapper').style.marginTop = '10vh';
+        document.getElementById('header-title').classList.remove('minimized');
+        document.getElementById('input-section').classList.remove('minimized');
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openDownloadModal() {
+        document.getElementById('download-modal').classList.remove('hide');
+    }
+
+    function closeDownloadModal() {
+        document.getElementById('download-modal').classList.add('hide');
+    }
+
+    // [수정] 리포트 이미지 생성 및 다운로드 (안정화 버전)
+    async function executeDownload() {
+        closeDownloadModal();
+        
+        const name = document.getElementById('customer-name').value.trim();
+        const reportContainer = document.getElementById('report-generator');
+        const reportHeader = document.getElementById('report-header-content');
+
+        // 1. 리포트 헤더 내용 생성
+        const genderStr = appState.gender === 0 ? '여성' : '남성';
+        let parentsStr = '없음';
+        if (appState.parents === 0.18) parentsStr = '1명';
+        else if (appState.parents === 0.48) parentsStr = '2명 모두';
+
+        reportHeader.innerHTML = `
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-black text-slate-800">아이젠트리 정밀 근시 진행 분석 리포트</h2>
+                <div class="mt-3 flex justify-center items-center gap-4 text-sm font-bold text-slate-500 bg-slate-50 py-3 px-8 rounded-full mx-auto w-max max-w-4xl border border-slate-100">
+                    ${name ? `<div class="flex items-center">${name} 고객님<div class="w-px h-3 bg-slate-300 ml-4"></div></div>` : ''}
+                    <div class="flex items-center">나이: <span class="text-slate-800 font-black text-base ml-1">${appState.age}세</span></div>
+                    <div class="w-px h-3 bg-slate-300"></div>
+                    <div class="flex items-center">성별: <span class="text-slate-800 font-black text-base ml-1">${genderStr}</span></div>
+                    <div class="w-px h-3 bg-slate-300"></div>
+                    <div class="flex items-center">부모 근시: <span class="text-slate-800 font-black text-base ml-1">${parentsStr}</span></div>
+                    <div class="w-px h-3 bg-slate-300"></div>
+                    <div class="flex items-center">현재 도수: <span class="text-blue-600 font-black text-lg ml-1">${formatD(appState.diopter)}</span></div>
+                </div>
+            </div>
+        `;
+
+        // 2. 1단계 리포트 내용 복제 및 차트 생성
+        const reportAvgSummaryContainer = document.getElementById('report-average-summary');
+        const avgSummaryPanel = document.querySelector('#average-result-section .lg\\:col-span-5');
+        const clonedAvgSummary = avgSummaryPanel.cloneNode(true);
+        clonedAvgSummary.querySelector('button').remove(); // '2단계 보기' 버튼 제거
+        
+        // 여백 및 정렬 개판되는 버그 해결을 위해 높이/확장 클래스 제거 및 정렬 추가
+        clonedAvgSummary.classList.remove('h-[580px]', 'space-y-5');
+        clonedAvgSummary.classList.add('h-full', 'justify-center', 'gap-4');
+        
+        const solBox = clonedAvgSummary.querySelector('.bg-slate-800');
+        if(solBox) { 
+            solBox.classList.remove('flex-1'); 
+            solBox.classList.add('h-auto'); 
+        }
+        
+        reportAvgSummaryContainer.innerHTML = '';
+        reportAvgSummaryContainer.appendChild(clonedAvgSummary);
+
+        // 차트 오류(t.startsWith) 방지를 위해 옵션 새로 정의
+        const reportAvgCtx = document.getElementById('reportAvgChartCanvas').getContext('2d');
+        const reportAvgChartInstance = new Chart(reportAvgCtx, {
+            type: 'line',
+            data: {
+                labels: avgChart.data.labels,
+                datasets: avgChart.data.datasets.map(ds => ({...ds}))
+            },
+            plugins: [riskLinePlugin],
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                scales: {
+                    y: { reverse: true, max: 2, min: avgChart.options.scales.y.min, title: { display: false }, ticks: { font: { size: 13, weight: 'bold' } } },
+                    x: { ticks: { font: { size: 13, weight: 'bold' } } }
+                },
+                plugins: { legend: { position: 'top', labels: { font: { size: 13, weight: 'bold' } } } }
+            }
+        });
+
+        // 3. 2단계 리포트 내용 복제 및 차트 생성
+        const reportPredSummaryContainer = document.getElementById('report-prediction-summary');
+        const predSummaryPanel = document.querySelector('#prediction-result-section .lg\\:col-span-4 > div');
+        const clonedPredSummary = predSummaryPanel.cloneNode(true);
+        clonedPredSummary.querySelector('#report-action-area').remove();
+        
+        // 여백 및 정렬 해결을 위한 클래스 정리
+        clonedPredSummary.classList.remove('flex-1', 'justify-start');
+        clonedPredSummary.classList.add('h-full', 'justify-center');
+        
+        reportPredSummaryContainer.innerHTML = '';
+        reportPredSummaryContainer.appendChild(clonedPredSummary);
+
+        const dataForReport = calculatePrediction();
+        const yMinPred = Math.floor(Math.min(...dataForReport.lowers, ...dataForReport.controlLowers)) - 1;
+        const yMaxPred = Math.max(1, Math.ceil(Math.max(...dataForReport.uppers, ...dataForReport.controlUppers)));
+
+        const reportPredCtx = document.getElementById('reportPredChartCanvas').getContext('2d');
+        const reportPredChartInstance = new Chart(reportPredCtx, {
+            type: 'line',
+            data: {
+                labels: dataForReport.labels,
+                datasets: predChart.data.datasets.map(ds => ({...ds, hidden: false}))
+            },
+            plugins: [riskLinePlugin],
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                layout: { padding: { top: 20 } },
+                scales: {
+                    y: { min: yMinPred, max: yMaxPred, ticks: { font: { size: 16, weight: 'bold' } } },
+                    x: { ticks: { font: { size: 16, weight: 'bold' } } }
+                },
+                plugins: { 
+                    legend: { 
+                        position: 'top', align: 'start',
+                        labels: { 
+                            font: { size: 15, weight: 'bold' }, 
+                            filter: (item) => !item.text.includes('상한') && !item.text.includes('하한')
+                        } 
+                    } 
+                }
+            }
+        });
+
+        // 4. 캡처를 위해 잠시 보이게
+        reportContainer.style.display = 'block';
+        
+        // 5. 렌더링 대기 후 캡처
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        try {
+            const canvas = await html2canvas(reportContainer, {
+                scale: 1.5,
+                useCORS: true, 
+                backgroundColor: '#ffffff', 
+                scrollY: 0,
+                scrollX: 0,
+                windowWidth: 1200
+            });
+            const link = document.createElement('a');
+            const fileName = name ? `${name}님_정밀근시분석리포트.jpg` : `아이젠트리_정밀근시분석리포트.jpg`;
+            link.download = fileName;
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        } catch (err) {
+            console.error("캡처 실패:", err);
+            alert("이미지 저장 중 오류가 발생했습니다.");
+        } finally {
+            // 6. 정리
+            reportContainer.style.display = 'none';
+            reportAvgChartInstance.destroy();
+            reportPredChartInstance.destroy();
+        }
+    }
+</script>
+</body>
+</html>
