@@ -6,6 +6,9 @@
     <title>아이젠트리 - 우리 아이 정밀 근시 시뮬레이터</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
@@ -42,24 +45,26 @@
         .btn-text-full { display: inline; }
         .btn-text-short { display: none; }
         
-        #input-wrap { transition: all 0.5s ease; }
-        #input-section { transition: all 0.5s ease; }
+        #input-wrap { transition: all 0.5s ease; width: 100%; }
+        #input-section { transition: all 0.5s ease; overflow-x: auto; -ms-overflow-style: none; scrollbar-width: none; }
+        #input-section::-webkit-scrollbar { display: none; } /* 스크롤바 숨김 */
         #input-section.minimized { padding: 15px 25px; border-radius: 20px; border-width: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 10px; }
-        #input-section.minimized #input-wrap { flex-direction: row; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap; }
-        #input-section.minimized #input-row { display: flex; flex-direction: row; flex-wrap: wrap; gap: 10px; justify-content: center; width: auto; flex: 1; }
-        #input-section.minimized .input-col { flex: 0 1 auto; display: flex; flex-direction: row; align-items: center; gap: 8px; }
-        #input-section.minimized label { margin-bottom: 0; font-size: 14px; white-space: nowrap; }
-        #input-section.minimized .value-box { padding: 8px 15px; font-size: 18px; border-width: 2px; border-radius: 12px; height: auto; min-width: 100px;}
-        #input-section.minimized .value-box.empty { font-size: 15px; }
+        #input-section.minimized #input-wrap { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: nowrap; min-width: max-content; }
+        #input-section.minimized #input-row { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; justify-content: flex-start; width: auto; flex: 1; }
+        #input-section.minimized .input-col { flex: 0 1 auto; display: flex; flex-direction: row; align-items: center; gap: 6px; }
+        #input-section.minimized label { margin-bottom: 0; font-size: 13px; white-space: nowrap; }
+        #input-section.minimized .value-box { padding: 8px 12px; font-size: 16px; border-width: 2px; border-radius: 12px; height: auto; min-width: auto; white-space: nowrap; }
+        #input-section.minimized .value-box.empty { font-size: 14px; }
         
-        #input-section.minimized #action-btn-wrap { width: auto; margin-top: 0; flex-direction: row; gap: 10px; align-items: center; }
-        #input-section.minimized #analyze-btn { width: auto; padding: 10px 20px; font-size: 18px; border-radius: 12px; flex: none; }
-        #input-section.minimized #reset-btn { display: flex !important; width: auto; padding: 10px 20px; font-size: 18px; border-radius: 12px; flex: none; }
+        #input-section.minimized #action-btn-wrap { width: auto; margin-top: 0; flex-direction: row; gap: 8px; align-items: center; flex-wrap: nowrap; }
+        #input-section.minimized #analyze-btn { width: auto; padding: 8px 16px; font-size: 16px; border-radius: 12px; flex: none; white-space: nowrap; }
+        #input-section.minimized #reset-btn { display: flex !important; width: auto; padding: 8px 16px; font-size: 16px; border-radius: 12px; flex: none; white-space: nowrap; }
         #input-section.minimized .btn-text-full { display: none; }
         #input-section.minimized .btn-text-short { display: inline; }
 
         /* Chart Legend */
-        .risk-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 15px; background: transparent; padding-top: 12px; margin-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 13px; font-weight: 700; } .risk-legend-item { display: flex; align-items: center; gap: 6px; color: #475569; margin-bottom: 0; } .risk-line-dash { width: 20px; height: 0; border-top: 2px dashed; opacity: 0.8; } .btn-toggle { background: #fff; color: #22c55e; border: 2px solid #22c55e; padding: 12px; border-radius: 15px; font-size: 18px; font-weight: 900; cursor: pointer; transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; gap: 10px; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.1); width: 100%; } .btn-toggle:hover { background: #f0fdf4; } .btn-toggle.active { background: #22c55e; color: white; box-shadow: 0 6px 12px rgba(34, 197, 94, 0.3); } </style></head><body class="p-4 md:p-6 text-slate-800 flex flex-col min-h-screen">
+        .risk-legend { display: flex; flex-wrap: nowrap; justify-content: center; gap: 6px 12px; background: transparent; padding-top: 12px; margin-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 12px; font-weight: 800; white-space: nowrap; } .risk-legend-item { display: flex; align-items: center; gap: 4px; color: #475569; margin-bottom: 0; } .risk-line-dash { width: 16px; height: 0; border-top: 2px dashed; opacity: 0.8; } .btn-toggle { background: #fff; color: #22c55e; border: 2px solid #22c55e; padding: 12px; border-radius: 15px; font-size: 18px; font-weight: 900; cursor: pointer; transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; gap: 10px; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.1); width: 100%; } .btn-toggle:hover { background: #f0fdf4; } .btn-toggle.active { background: #22c55e; color: white; box-shadow: 0 6px 12px rgba(34, 197, 94, 0.3); }
+        @media (max-width: 1024px) { .risk-legend { gap: 4px 8px; font-size: 11px; flex-wrap: wrap; } } </style></head><body class="p-4 md:p-6 text-slate-800 flex flex-col min-h-screen">
 
 <div id="main-wrapper" class="max-w-[1400px] mx-auto w-full flex-1 flex flex-col">
     <!-- Header -->
@@ -111,10 +116,10 @@
                     <canvas id="avgChart"></canvas>
                 </div>
                 <div class="risk-legend shrink-0">
-                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도 근시 (-0.50D)</div>
-                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도 근시 (-3.00D)</div>
-                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도 근시 (-6.00D)</div>
-                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(147, 51, 234, 0.8);"></div> 🆘 초고도 근시 (-9.00D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도(-0.5D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도(-3.0D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도(-6.0D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(147, 51, 234, 0.8);"></div> 🆘 초고도(-9.0D)</div>
                 </div>
             </div>
         </div>
@@ -176,10 +181,10 @@
                     <canvas id="predChart"></canvas>
                 </div>
                 <div class="risk-legend shrink-0 mt-2">
-                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도 근시 (-0.50D)</div>
-                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도 근시 (-3.00D)</div>
-                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도 근시 (-6.00D)</div>
-                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(147, 51, 234, 0.8);"></div> 🆘 초고도 근시 (-9.00D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도(-0.5D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도(-3.0D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도(-6.0D)</div>
+                    <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(147, 51, 234, 0.8);"></div> 🆘 초고도(-9.0D)</div>
                 </div>
             </div>
         </div>
@@ -187,28 +192,33 @@
         <div class="lg:col-span-4 space-y-4 flex flex-col h-[600px]">
             <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-200 flex flex-col justify-start flex-1">
                 <h3 class="text-2xl font-black text-slate-800 mb-6 text-center border-b pb-4">📊 예측 결과 요약 (18세 기준)</h3>
-                <div class="bg-slate-50 p-4 rounded-2xl border-l-8 border-red-500 mb-3">
-                    <div class="text-sm color-slate-500 font-bold mb-1">일반 렌즈 착용 시 최종 예상</div>
-                    <div class="text-3xl font-black text-red-500" id="sum-normal">-0.00 D</div>
+                
+                <!-- UI 개선: 평평하고 직관적인 모던 디자인 -->
+                <div class="bg-red-50/40 border border-red-100 p-5 rounded-2xl mb-4 flex flex-col items-center justify-center transition-all shadow-sm text-center">
+                    <div class="text-xs text-red-400 font-bold mb-1">일반 렌즈 착용 시 예상 도수</div>
+                    <div class="text-4xl font-black text-red-500 tracking-tighter" id="sum-normal">-0.00 D</div>
                 </div>
 
                 <button id="btn-toggle-control" class="btn-toggle my-2" onclick="toggleControl()">
                     ✨ 근시 억제 렌즈 사용 시 변화 보기
                 </button>
                 
-                <div id="panel-control" class="bg-green-50 p-4 rounded-2xl border-l-8 border-green-500 transition-all duration-500 mb-3" style="opacity:0; transform:translateY(-10px); display:none;">
-                    <div class="text-sm color-slate-500 font-bold mb-1">억제 렌즈 착용 시 최종 예상</div>
-                    <div class="text-3xl font-black text-green-600" id="sum-control">-0.00 D</div>
-                    <div class="mt-3 pt-3 border-t border-green-200/50">
-                        <div class="text-xs font-bold text-slate-500">억제 효과 분석</div>
-                        <div class="text-lg font-black text-amber-600 mt-1">도수 억제 <span id="sum-diff">+0.00 D</span> (<span id="sum-pct">0%</span>)</div>
+                <div id="panel-control" class="bg-emerald-50/50 border border-emerald-100 p-5 rounded-2xl transition-all duration-500 mb-4 flex flex-col items-center justify-center shadow-sm text-center" style="opacity:0; transform:translateY(-10px); display:none;">
+                    <div class="text-xs text-emerald-600 font-bold mb-1">억제 렌즈 착용 시 예상 도수</div>
+                    <div class="text-4xl font-black text-emerald-600 tracking-tighter mb-3" id="sum-control">-0.00 D</div>
+                    <div class="w-full pt-4 border-t border-emerald-200/50 flex flex-col items-center">
+                        <div class="text-[11px] font-bold text-slate-400 mb-1 tracking-wider uppercase">근시 진행 억제 효과</div>
+                        <div class="text-lg font-black text-slate-700">도수 <span id="sum-diff" class="text-xl text-emerald-600">+0.00 D</span> 세이브 (<span id="sum-pct" class="text-emerald-600">0%</span> 억제)</div>
                     </div>
                 </div>
 
                 <!-- 이름 입력 및 다운로드 -->
-                <div id="report-action-area" class="mt-auto pt-4 border-t border-slate-100 flex flex-row gap-3">
-                    <input type="text" id="customer-name" placeholder="이름 입력 (선택)" class="w-3/4 p-3 rounded-xl font-bold text-base outline-none border-2 border-slate-100 focus:border-blue-500 bg-slate-50 text-slate-900 text-center">
-                    <button onclick="openDownloadModal()" title="분석 리포트 이미지 저장" class="w-1/4 bg-slate-800 hover:bg-black text-white py-3 rounded-xl font-black text-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center">
+                <div id="report-action-area" class="mt-auto pt-4 border-t border-slate-100 flex flex-row gap-2">
+                    <input type="text" id="customer-name" placeholder="이름 입력 (선택)" class="flex-1 p-3 rounded-xl font-bold text-sm outline-none border-2 border-slate-100 focus:border-blue-500 bg-slate-50 text-slate-900 text-center">
+                    <button onclick="generateQR()" title="QR 코드로 공유하기" class="w-14 shrink-0 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-xl shadow-lg active:scale-95 transition-all flex items-center justify-center">
+                        📱
+                    </button>
+                    <button onclick="openDownloadModal()" title="분석 리포트 이미지 저장" class="w-14 shrink-0 bg-slate-800 hover:bg-black text-white py-3 rounded-xl font-black text-xl shadow-lg active:scale-95 transition-all flex items-center justify-center">
                         🖨️
                     </button>
                 </div>
@@ -240,37 +250,80 @@
     </div>
 </div>
 
+<!-- QR 생성 모달 -->
+<div id="qr-modal" class="hide fixed inset-0 bg-slate-900/70 z-[10000] flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white p-8 rounded-3xl w-[90%] max-w-sm text-center shadow-2xl transform transition-all scale-100 flex flex-col items-center">
+        <h3 class="text-2xl font-black text-slate-800 mb-2">📱 모바일 전송</h3>
+        <p class="text-slate-500 font-bold mb-6 text-sm">고객님의 스마트폰 카메라로<br>아래 QR 코드를 스캔하세요.</p>
+        <div id="qr-code-container" class="bg-white p-4 rounded-xl border-2 border-slate-100 shadow-inner mb-6 flex justify-center items-center">
+            <!-- QR 코드 삽입부 -->
+        </div>
+        <button onclick="document.getElementById('qr-modal').classList.add('hide')" class="w-full py-4 bg-slate-800 text-white font-black rounded-xl shadow-lg hover:bg-black transition-all">닫기</button>
+    </div>
+</div>
+
+<!-- 로딩 모달 -->
+<div id="loading-modal" class="hide fixed inset-0 bg-slate-900/70 z-[10001] flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white p-6 rounded-2xl flex items-center gap-4 shadow-2xl">
+        <div class="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <span class="font-bold text-slate-700 text-lg">데이터 생성 중...</span>
+    </div>
+</div>
+
+<!-- 모바일 뷰어 화면 (기본 숨김) -->
+<div id="viewer-container" class="hide flex flex-col items-center min-h-screen bg-slate-100 pb-10">
+    <div id="viewer-loading" class="mt-40 flex flex-col items-center gap-4">
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <span class="font-bold text-slate-500">리포트를 불러오는 중입니다...</span>
+    </div>
+    <img id="viewer-image" class="w-full max-w-[800px] shadow-2xl hide bg-white" alt="분석 리포트">
+</div>
+
 <!-- [추가] 리포트 생성을 위한 숨겨진 컨테이너 -->
-<div id="report-generator" style="position: absolute; left: -9999px; top: 0; width: 1100px; background: white; padding: 50px; box-sizing: border-box;">
+<div id="report-generator" style="position: absolute; left: -9999px; top: 0; width: 800px; background: white; padding: 60px 50px; box-sizing: border-box;">
     <!-- 워터마크 로고 -->
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.05; pointer-events: none; z-index: 0;">
-        <img src="https://github.com/eye1007/calc/blob/main/logo.png?raw=true" style="width: 600px;">
+        <img src="https://raw.githubusercontent.com/eye1007/calc/main/logo.png" crossorigin="anonymous" style="width: 500px;">
     </div>
     
     <div id="report-header-content"></div>
 
     <!-- 1단계 타이틀 추가 -->
-    <h3 class="text-xl font-black mt-2 mb-3 text-slate-700" style="position: relative; z-index: 1;">1단계: 또래 평균 비교</h3>
+    <h3 class="text-2xl font-black mt-2 mb-3 text-slate-800 border-b-2 border-slate-200 pb-2" style="position: relative; z-index: 1;">1단계: 또래 평균 비교</h3>
 
-    <!-- 1단계: 평균 비교 섹션 -->
-    <div id="report-average-section" class="grid grid-cols-12 gap-5">
-        <div class="col-span-7 h-[420px] bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <canvas id="reportAvgChartCanvas"></canvas>
+    <!-- 1단계: 평균 비교 섹션 (세로) -->
+    <div id="report-average-section" class="flex flex-col gap-5">
+        <div class="h-[400px] flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100 relative shadow-sm">
+            <div class="relative flex-1 w-full min-h-0">
+                <canvas id="reportAvgChartCanvas"></canvas>
+            </div>
+            <div class="risk-legend shrink-0 mt-3 pb-1 border-none">
+                <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도(-0.5D)</div>
+                <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도(-3.0D)</div>
+                <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도(-6.0D)</div>
+                <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(147, 51, 234, 0.8);"></div> 🆘 초고도(-9.0D)</div>
+            </div>
         </div>
-        <div class="col-span-5" id="report-average-summary">
-        </div>
+        <div id="report-average-summary" class="flex flex-col gap-4"></div>
     </div>
 
     <!-- 2단계 타이틀 추가 -->
-    <h3 class="text-xl font-black mt-6 mb-3 text-slate-700" style="position: relative; z-index: 1;">2단계: 미래 시력 예측</h3>
+    <h3 class="text-2xl font-black mt-8 mb-3 text-slate-800 border-b-2 border-slate-200 pb-2" style="position: relative; z-index: 1;">2단계: 미래 시력 예측</h3>
 
-    <!-- 2단계: 진행 예측 섹션 -->
-    <div id="report-prediction-section" class="grid grid-cols-12 gap-5 mt-2">
-        <div class="col-span-8 h-[450px] bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <canvas id="reportPredChartCanvas"></canvas>
+    <!-- 2단계: 진행 예측 섹션 (세로) -->
+    <div id="report-prediction-section" class="flex flex-col gap-5 mt-2">
+        <div class="h-[450px] flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100 relative shadow-sm">
+            <div class="relative flex-1 w-full min-h-0">
+                <canvas id="reportPredChartCanvas"></canvas>
+            </div>
+            <div class="risk-legend shrink-0 mt-3 pb-1 border-none">
+                <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도(-0.5D)</div>
+                <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도(-3.0D)</div>
+                <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도(-6.0D)</div>
+                <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(147, 51, 234, 0.8);"></div> 🆘 초고도(-9.0D)</div>
+            </div>
         </div>
-        <div class="col-span-4" id="report-prediction-summary">
-        </div>
+        <div id="report-prediction-summary" class="flex flex-col gap-4"></div>
     </div>
 
     <!-- 출처/경고문 수정 및 논문 추가 -->
@@ -283,6 +336,40 @@
 
 
 <script>
+    // 파이어베이스 초기화
+    const firebaseConfig = {
+        apiKey: "AIzaSyBV128h-2uzJUjGsazgK0XXn6f0uVnMyV8",
+        authDomain: "eyegentry-5c7de.firebaseapp.com",
+        projectId: "eyegentry-5c7de",
+        storageBucket: "eyegentry-5c7de.firebasestorage.app",
+        messagingSenderId: "772851251300",
+        appId: "1:772851251300:web:330b44914302a6b0048771"
+    };
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
+    // 뷰어 모드(QR코드로 접속 시) 확인 로직
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewId = urlParams.get('view');
+        if (viewId) {
+            document.getElementById('main-wrapper').classList.add('hide');
+            document.getElementById('viewer-container').classList.remove('hide');
+            
+            db.ref('myo_consult/' + viewId).once('value').then((snapshot) => {
+                const data = snapshot.val();
+                if (data && data.image) {
+                    document.getElementById('viewer-loading').classList.add('hide');
+                    const img = document.getElementById('viewer-image');
+                    img.src = data.image;
+                    img.classList.remove('hide');
+                } else { document.getElementById('viewer-loading').innerHTML = '<span class="text-red-500 font-bold text-lg mt-10">만료되거나 존재하지 않는 리포트입니다.</span>'; }
+            }).catch(() => { document.getElementById('viewer-loading').innerHTML = '<span class="text-red-500 font-bold text-lg mt-10">오류가 발생했습니다.</span>'; });
+        }
+    });
+
     let appState = {
         age: null,
         gender: null,
@@ -581,7 +668,7 @@
         const diff = Math.abs(progNormal - progControl);
         const pct = Math.abs(progNormal) > 0 ? Math.round((diff / Math.abs(progNormal)) * 100) : 0;
 
-        document.getElementById('sum-normal').innerHTML = `${formatD(finalNormalSE)} <div class="text-lg font-bold text-red-400 mt-1">오차범위: ${formatD(finalNormalUpper)} ~ ${formatD(finalNormalLower)}</div>`;
+        document.getElementById('sum-normal').innerHTML = `${formatD(finalNormalSE)} <div class="text-sm font-bold text-red-400/80 mt-1 tracking-normal text-center">예상 오차: ${formatD(finalNormalUpper)} ~ ${formatD(finalNormalLower)}</div>`;
         document.getElementById('sum-control').innerText = formatD(finalControlSE);
         document.getElementById('sum-diff').innerText = `+${diff.toFixed(2)} D`;
         document.getElementById('sum-pct').innerText = `${pct}%`;
@@ -618,7 +705,7 @@
                     },
                     plugins: { 
                         legend: { 
-                            position: 'top', align: 'start',
+                            position: 'top', align: 'center',
                             labels: { 
                                 font: { size: 15, weight: 'bold' }, 
                                 filter: (item) => !item.text.includes('상한') && !item.text.includes('하한') && (!showControl ? !item.text.includes('억제') : true)
@@ -660,10 +747,8 @@
         document.getElementById('download-modal').classList.add('hide');
     }
 
-    // [수정] 리포트 이미지 생성 및 다운로드 (안정화 버전)
-    async function executeDownload() {
-        closeDownloadModal();
-        
+    // 공통: 캔버스 생성 함수 분리
+    async function generateReportCanvas() {
         const name = document.getElementById('customer-name').value.trim();
         const reportContainer = document.getElementById('report-generator');
         const reportHeader = document.getElementById('report-header-content');
@@ -676,15 +761,15 @@
 
         reportHeader.innerHTML = `
             <div class="text-center mb-8">
-                <h2 class="text-3xl font-black text-slate-800">아이젠트리 정밀 근시 진행 분석 리포트</h2>
-                <div class="mt-3 flex justify-center items-center gap-4 text-sm font-bold text-slate-500 bg-slate-50 py-3 px-8 rounded-full mx-auto w-max max-w-4xl border border-slate-100">
+                <h2 class="text-5xl font-black text-slate-800 tracking-tighter mb-10">아이젠트리 정밀 근시 분석 리포트</h2>
+                <div class="mt-6 flex justify-center items-center gap-4 text-sm font-bold text-slate-500 bg-slate-50 py-3 px-8 rounded-full mx-auto w-max max-w-4xl border border-slate-100">
                     ${name ? `<div class="flex items-center">${name} 고객님<div class="w-px h-3 bg-slate-300 ml-4"></div></div>` : ''}
                     <div class="flex items-center">나이: <span class="text-slate-800 font-black text-base ml-1">${appState.age}세</span></div>
-                    <div class="w-px h-3 bg-slate-300"></div>
+                    <div class="w-px h-6 bg-slate-300"></div>
                     <div class="flex items-center">성별: <span class="text-slate-800 font-black text-base ml-1">${genderStr}</span></div>
-                    <div class="w-px h-3 bg-slate-300"></div>
+                    <div class="w-px h-6 bg-slate-300"></div>
                     <div class="flex items-center">부모 근시: <span class="text-slate-800 font-black text-base ml-1">${parentsStr}</span></div>
-                    <div class="w-px h-3 bg-slate-300"></div>
+                    <div class="w-px h-6 bg-slate-300"></div>
                     <div class="flex items-center">현재 도수: <span class="text-blue-600 font-black text-lg ml-1">${formatD(appState.diopter)}</span></div>
                 </div>
             </div>
@@ -696,13 +781,12 @@
         const clonedAvgSummary = avgSummaryPanel.cloneNode(true);
         clonedAvgSummary.querySelector('button').remove(); // '2단계 보기' 버튼 제거
         
-        // 여백 및 정렬 개판되는 버그 해결을 위해 높이/확장 클래스 제거 및 정렬 추가
-        clonedAvgSummary.classList.remove('h-[580px]', 'space-y-5');
-        clonedAvgSummary.classList.add('h-full', 'justify-center', 'gap-4');
+        // 세로 배치에 맞도록 클래스 전면 수정
+        clonedAvgSummary.className = 'flex flex-col gap-5 w-full';
         
         const solBox = clonedAvgSummary.querySelector('.bg-slate-800');
         if(solBox) { 
-            solBox.classList.remove('flex-1'); 
+            solBox.classList.remove('flex-1', 'justify-center'); 
             solBox.classList.add('h-auto'); 
         }
         
@@ -721,10 +805,10 @@
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false,
                 scales: {
-                    y: { reverse: true, max: 2, min: avgChart.options.scales.y.min, title: { display: false }, ticks: { font: { size: 13, weight: 'bold' } } },
-                    x: { ticks: { font: { size: 13, weight: 'bold' } } }
+                    y: { reverse: true, max: 2, min: avgChart.options.scales.y.min, title: { display: false }, ticks: { font: { size: 16, weight: 'bold' } } },
+                    x: { ticks: { font: { size: 16, weight: 'bold' } } }
                 },
-                plugins: { legend: { position: 'top', labels: { font: { size: 13, weight: 'bold' } } } }
+                plugins: { legend: { display: false } } // 범례는 하단에 별도 표시
             }
         });
 
@@ -734,9 +818,8 @@
         const clonedPredSummary = predSummaryPanel.cloneNode(true);
         clonedPredSummary.querySelector('#report-action-area').remove();
         
-        // 여백 및 정렬 해결을 위한 클래스 정리
-        clonedPredSummary.classList.remove('flex-1', 'justify-start');
-        clonedPredSummary.classList.add('h-full', 'justify-center');
+        // 세로형 배치를 위한 클래스 정리
+        clonedPredSummary.className = 'flex flex-col gap-4 w-full bg-white p-6 rounded-3xl shadow-sm border border-slate-200';
         
         reportPredSummaryContainer.innerHTML = '';
         reportPredSummaryContainer.appendChild(clonedPredSummary);
@@ -760,15 +843,7 @@
                     y: { min: yMinPred, max: yMaxPred, ticks: { font: { size: 16, weight: 'bold' } } },
                     x: { ticks: { font: { size: 16, weight: 'bold' } } }
                 },
-                plugins: { 
-                    legend: { 
-                        position: 'top', align: 'start',
-                        labels: { 
-                            font: { size: 15, weight: 'bold' }, 
-                            filter: (item) => !item.text.includes('상한') && !item.text.includes('하한')
-                        } 
-                    } 
-                }
+                plugins: { legend: { display: false } } // 범례 별도 표시
             }
         });
 
@@ -778,15 +853,29 @@
         // 5. 렌더링 대기 후 캡처
         await new Promise(resolve => setTimeout(resolve, 300));
 
+        const canvas = await html2canvas(reportContainer, {
+            scale: 1.5, // RTDB 저장 용량을 위해 해상도 최적화
+            useCORS: true, 
+            backgroundColor: '#ffffff', 
+            scrollY: 0,
+            scrollX: 0,
+            windowWidth: 800
+        });
+
+        reportContainer.style.display = 'none';
+        reportAvgChartInstance.destroy();
+        reportPredChartInstance.destroy();
+
+        return { canvas, name };
+    }
+
+    // 리포트 이미지 다운로드
+    async function executeDownload() {
+        closeDownloadModal();
+        document.getElementById('loading-modal').classList.remove('hide');
+        
         try {
-            const canvas = await html2canvas(reportContainer, {
-                scale: 1.5,
-                useCORS: true, 
-                backgroundColor: '#ffffff', 
-                scrollY: 0,
-                scrollX: 0,
-                windowWidth: 1200
-            });
+            const { canvas, name } = await generateReportCanvas();
             const link = document.createElement('a');
             const fileName = name ? `${name}님_정밀근시분석리포트.jpg` : `아이젠트리_정밀근시분석리포트.jpg`;
             link.download = fileName;
@@ -796,10 +885,42 @@
             console.error("캡처 실패:", err);
             alert("이미지 저장 중 오류가 발생했습니다.");
         } finally {
-            // 6. 정리
-            reportContainer.style.display = 'none';
-            reportAvgChartInstance.destroy();
-            reportPredChartInstance.destroy();
+            document.getElementById('loading-modal').classList.add('hide');
+        }
+    }
+
+    // 파이어베이스 RTDB에 업로드 후 QR 생성
+    async function generateQR() {
+        document.getElementById('loading-modal').classList.remove('hide');
+        try {
+            const { canvas } = await generateReportCanvas();
+            const base64Image = canvas.toDataURL('image/jpeg', 0.7); // RTDB 용량 확보용 압축률 적용
+            
+            const uniqueId = 'rep_' + Date.now();
+            await db.ref('myo_consult/' + uniqueId).set({
+                image: base64Image,
+                timestamp: Date.now()
+            });
+            
+            const shareUrl = window.location.origin + window.location.pathname + '?view=' + uniqueId;
+            
+            const qrContainer = document.getElementById('qr-code-container');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: shareUrl,
+                width: 180,
+                height: 180,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.L
+            });
+            
+            document.getElementById('qr-modal').classList.remove('hide');
+        } catch (err) {
+            console.error("QR 생성 실패:", err);
+            alert("QR 코드를 생성하는 중 오류가 발생했습니다.");
+        } finally {
+            document.getElementById('loading-modal').classList.add('hide');
         }
     }
 </script>
