@@ -39,7 +39,7 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.3); border-radius: 10px; }
 
         /* UI Minimization Animations */
-        #main-wrapper { transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 10vh; padding-bottom: 50px; }
+        #main-wrapper { transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 5vh; padding-bottom: 50px; }
         #header-title { transition: all 0.5s ease; transform-origin: top; overflow: hidden; opacity: 1; height: 100px; }
         #header-title.minimized { height: 0 !important; opacity: 0; margin-bottom: 0; padding: 0; transform: scaleY(0); }
         
@@ -47,7 +47,7 @@
         .btn-text-short { display: none; }
         
         #input-wrap { transition: all 0.5s ease; width: 100%; }
-        #input-section { transition: all 0.5s ease; overflow-x: auto; -ms-overflow-style: none; scrollbar-width: none; }
+        #input-section { transition: all 0.5s ease; padding: 1.5rem !important;}
         #input-section::-webkit-scrollbar { display: none; } /* 스크롤바 숨김 */
         #input-section.minimized { padding: 15px 25px; border-radius: 20px; border-width: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 10px; }
         #input-section.minimized #input-wrap { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: nowrap; min-width: max-content; }
