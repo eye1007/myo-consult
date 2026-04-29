@@ -70,7 +70,37 @@
 
         /* Chart Legend */
         .risk-legend { display: flex; flex-wrap: nowrap; justify-content: center; gap: 6px 12px; background: transparent; padding-top: 4px; padding-bottom: 15px; border-top: 1px dashed #cbd5e1; font-size: 12px; font-weight: 800; white-space: nowrap; } .risk-legend-item { display: flex; align-items: center; gap: 4px; color: #475569; margin-bottom: 0; } .risk-line-dash { width: 16px; height: 0; border-top: 2px dashed; opacity: 0.8; } .btn-toggle { background: #fff; color: #22c55e; border: 2px solid #22c55e; padding: 12px; border-radius: 15px; font-size: 18px; font-weight: 900; cursor: pointer; transition: all 0.3s ease; display: flex; justify-content: center; align-items: center; gap: 10px; box-shadow: 0 4px 6px rgba(34, 197, 94, 0.1); width: 100%; } .btn-toggle:hover { background: #f0fdf4; } .btn-toggle.active { background: #22c55e; color: white; box-shadow: 0 6px 12px rgba(34, 197, 94, 0.3); }
-        @media (max-width: 1024px) { .risk-legend { gap: 4px 8px; font-size: 11px; flex-wrap: wrap; } } </style></head><body class="p-4 md:p-6 text-slate-800 flex flex-col min-h-screen">
+        @media (max-width: 1024px) { .risk-legend { gap: 4px 8px; font-size: 11px; flex-wrap: wrap; } } 
+        
+        /* 리포트 캡처용 둥근 박스 패딩 보정 (html2canvas 텍스트 쏠림 현상 해결) */
+        #report-generator .rounded-xl,
+        #report-generator .rounded-2xl,
+        #report-generator .rounded-3xl,
+        #report-generator .bg-white\/60 {
+            padding-top: 12px !important;
+            padding-bottom: 20px !important;
+        }
+
+        /* 리포트 세로 길이 적당한 완화 (겹침 방지) */
+        #report-generator .p-6, #report-generator .p-8 { padding: 20px !important; }
+        #report-generator .mb-8, #report-generator .mb-10 { margin-bottom: 20px !important; }
+        #report-generator .gap-5, #report-generator .gap-6 { gap: 16px !important; }
+
+        /* 리포트 이미지 내의 예측 결과 요약 박스 여백 조절 */
+        #report-generator #report-prediction-summary .rounded-2xl {
+            padding-top: 5px !important;    /* 위쪽 여백 (줄이고 싶으면 숫자를 낮춤) */
+            padding-bottom: 10px !important; /* 아래쪽 여백 (이미지 쏠림 방지를 위해 약간 넉넉히) */
+            margin-bottom: 10px !important;  /* 박스 간의 간격 */
+        }
+
+        /* 요약 박스 내부의 텍스트 간격 조절 */
+        #report-generator #report-prediction-summary .mb-4 {
+            margin-bottom: 5px !important;   /* 항목 사이의 간격을 줄임 */
+        }
+
+
+
+        </style></head><body class="p-4 md:p-6 text-slate-800 flex flex-col min-h-screen">
 
 <div id="main-wrapper" class="max-w-[1400px] mx-auto w-full flex-1 flex flex-col">
     <!-- Header -->
@@ -301,7 +331,7 @@
 </div>
 
 <!-- [추가] 리포트 생성을 위한 숨겨진 컨테이너 -->
-<div id="report-generator" style="position: absolute; left: -9999px; top: 0; width: 800px; background: white; padding: 60px 50px; box-sizing: border-box;">
+<div id="report-generator" style="position: absolute; left: 0; top: 0; z-index: -9999; visibility: hidden; width: 800px; background: white; padding: 20px 50px 80px 50px; box-sizing: border-box;">
     <!-- 워터마크 로고 -->
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.05; pointer-events: none; z-index: 0;">
         <img src="https://raw.githubusercontent.com/eye1007/calc/main/logo.png" crossorigin="anonymous" style="width: 500px;">
@@ -309,16 +339,16 @@
     
     <div id="report-header-content"></div>
 
-    <!-- 1단계 타이틀 추가 -->
-    <h3 class="text-2xl font-black mt-2 mb-3 text-slate-800 border-b-2 border-slate-200 pb-2" style="position: relative; z-index: 1;">1단계: 또래 평균 비교</h3>
+    <!-- 1단계 타이틀 -->
+    <h3 class="text-2xl font-black mt-2 mb-4 text-slate-800 border-b-2 border-slate-200 pb-2" style="position: relative; z-index: 1;">1단계: 또래 평균 비교</h3>
 
     <!-- 1단계: 평균 비교 섹션 (세로) -->
     <div id="report-average-section" class="flex flex-col gap-5">
-        <div class="h-[400px] flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100 relative shadow-sm">
+        <div class="h-[320px] flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100 relative shadow-sm">
             <div class="relative flex-1 w-full min-h-0">
                 <canvas id="reportAvgChartCanvas"></canvas>
             </div>
-            <div class="risk-legend shrink-0 mt-3 pb-1 border-none">
+            <div class="risk-legend shrink-0 mt-4 pb-2 border-none">
                 <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도(-0.5D)</div>
                 <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도(-3.0D)</div>
                 <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도(-6.0D)</div>
@@ -328,16 +358,16 @@
         <div id="report-average-summary" class="flex flex-col gap-4"></div>
     </div>
 
-    <!-- 2단계 타이틀 추가 -->
-    <h3 class="text-2xl font-black mt-8 mb-3 text-slate-800 border-b-2 border-slate-200 pb-2" style="position: relative; z-index: 1;">2단계: 미래 시력 예측</h3>
+    <!-- 2단계 타이틀 -->
+    <h3 class="text-2xl font-black mt-6 mb-4 text-slate-800 border-b-2 border-slate-200 pb-2" style="position: relative; z-index: 1;">2단계: 미래 시력 예측</h3>
 
     <!-- 2단계: 진행 예측 섹션 (세로) -->
     <div id="report-prediction-section" class="flex flex-col gap-5 mt-2">
-        <div class="h-[450px] flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100 relative shadow-sm">
+        <div class="h-[360px] flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100 relative shadow-sm">
             <div class="relative flex-1 w-full min-h-0">
                 <canvas id="reportPredChartCanvas"></canvas>
             </div>
-            <div class="risk-legend shrink-0 mt-3 pb-1 border-none">
+            <div class="risk-legend shrink-0 mt-4 pb-2 border-none">
                 <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(59, 130, 246, 0.8);"></div> 💧 경도(-0.5D)</div>
                 <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(217, 119, 6, 0.8);"></div> ⚠️ 중등도(-3.0D)</div>
                 <div class="risk-legend-item"><div class="risk-line-dash" style="border-color: rgba(239, 68, 68, 0.8);"></div> 🚨 고도(-6.0D)</div>
@@ -347,11 +377,11 @@
         <div id="report-prediction-summary" class="flex flex-col gap-4"></div>
     </div>
 
-    <!-- 출처/경고문 수정 및 논문 추가 -->
-    <div class="mt-6 pt-4 border-t border-dashed border-slate-300 text-center text-[11px] text-slate-400 font-bold leading-relaxed" style="position: relative; z-index: 1;">
-        <p class="mb-1 text-slate-500">※ 본 분석은 국민건강영양조사(KNHANES) 표준 데이터 및 아래 연구 논문을 기반으로 아이젠트리의 자체 알고리즘을 통해 산출된 예측 결과입니다.</p>
-        <p class="font-normal text-[10px] opacity-80">Reference 1: Ophthalmic Physiologic Optic - 2024 - Naduvilath - Regional ethnic differences in ocular axial elongation and refractive</p>
-        <p class="font-normal text-[10px] opacity-80">Reference 2: Ophthalmic Physiologic Optic - 2025 - Tahhan - Factors predicting myopia incidence in China and Europe</p>
+    <!-- 출처/경고문 -->
+    <div class="mt-6 pt-4 border-t border-dashed border-slate-300 text-center text-[10px] text-slate-400 font-bold leading-relaxed" style="position: relative; z-index: 1;">
+        <p class="mb-1 text-slate-500">※ 본 분석은 KNHANES 표준 데이터 및 아래 연구 논문을 기반으로 산출된 예측 결과입니다.</p>
+        <p class="font-normal text-[9px] opacity-80 mb-0">Reference 1: Ophthalmic Physiologic Optic - 2024 - Naduvilath - Regional ethnic differences in ocular axial elongation and refractive</p>
+        <p class="font-normal text-[9px] opacity-80 mb-0">Reference 2: Ophthalmic Physiologic Optic - 2025 - Tahhan - Factors predicting myopia incidence in China and Europe</p>
     </div>
 </div>
 
@@ -809,9 +839,9 @@
         else if (appState.parents === 0.48) parentsStr = '2명 모두';
 
         reportHeader.innerHTML = `
-            <div class="text-center mb-8">
-                <h2 class="text-5xl font-black text-slate-800 tracking-tighter mb-10">아이젠트리 정밀 근시 분석 리포트</h2>
-                <div class="mt-6 flex justify-center items-center gap-4 text-sm font-bold text-slate-500 bg-slate-50 py-3 px-8 rounded-full mx-auto w-max max-w-4xl border border-slate-100">
+            <div class="text-center mb-6">
+                <h2 class="text-4xl font-black text-slate-800 tracking-tight" style="margin-bottom: 40px !important;">아이젠트리 정밀 근시 분석 리포트</h2>
+                <div class="flex justify-center items-center gap-3 text-sm font-bold text-slate-500 bg-slate-50 py-3 px-6 rounded-full mx-auto w-max max-w-4xl border border-slate-100">
                     ${name ? `<div class="flex items-center">${name} 고객님<div class="w-px h-3 bg-slate-300 ml-4"></div></div>` : ''}
                     <div class="flex items-center">나이: <span class="text-slate-800 font-black text-base ml-1">${appState.age}세</span></div>
                     <div class="w-px h-6 bg-slate-300"></div>
@@ -831,7 +861,7 @@
         clonedAvgSummary.querySelector('button').remove(); // '2단계 보기' 버튼 제거
         
         // 세로 배치에 맞도록 클래스 전면 수정
-        clonedAvgSummary.className = 'flex flex-col gap-5 w-full';
+        clonedAvgSummary.className = 'flex flex-col gap-4 w-full';
         
         const solBox = clonedAvgSummary.querySelector('.bg-slate-800');
         if(solBox) { 
@@ -867,8 +897,43 @@
         const clonedPredSummary = predSummaryPanel.cloneNode(true);
         clonedPredSummary.querySelector('#report-action-area').remove();
         
+        // 🚨 불필요한 버튼 제거 및 요약 박스 가로 배치 (요청사항 반영)
+        const btnToggle = clonedPredSummary.querySelector('#btn-toggle-control');
+        if (btnToggle) btnToggle.remove();
+
+        const boxNormal = clonedPredSummary.querySelector('.border-red-100');
+        const boxControl = clonedPredSummary.querySelector('#panel-control');
+        
+        if (boxNormal && boxControl) {
+            // 강제로 숨김 해제
+            boxControl.style.display = 'flex';
+            boxControl.style.opacity = '1';
+            boxControl.style.visibility = 'visible';
+            boxControl.style.transform = 'none';
+            
+            // 기존 상하 여백 제거 및 폭 설정
+            boxNormal.classList.remove('mb-4');
+            boxControl.classList.remove('mb-4');
+            boxNormal.classList.add('flex-1');
+            boxControl.classList.add('flex-1');
+            
+            // 내부 텍스트 크기 조정 (가로 배치 시 좁아져서 잘리지 않도록 폰트 축소)
+            const val1 = boxNormal.querySelector('.text-4xl');
+            if (val1) val1.className = "text-2xl font-black text-red-500 tracking-tighter";
+            const val2 = boxControl.querySelector('.text-4xl');
+            if (val2) val2.className = "text-2xl font-black text-emerald-600 tracking-tighter mb-1";
+            
+            // 가로 정렬 래퍼 생성 (두 박스를 나란히)
+            const flexRow = document.createElement('div');
+            flexRow.className = 'flex flex-row gap-4 w-full justify-between items-stretch mb-4';
+            
+            boxNormal.parentNode.insertBefore(flexRow, boxNormal);
+            flexRow.appendChild(boxNormal);
+            flexRow.appendChild(boxControl);
+        }
+
         // 세로형 배치를 위한 클래스 정리
-        clonedPredSummary.className = 'flex flex-col gap-4 w-full bg-white p-6 rounded-3xl shadow-sm border border-slate-200';
+        clonedPredSummary.className = 'flex flex-col gap-2 w-full bg-white pt-2 pb-4 px-4 rounded-2xl shadow-sm border border-slate-200';
         
         reportPredSummaryContainer.innerHTML = '';
         reportPredSummaryContainer.appendChild(clonedPredSummary);
@@ -896,8 +961,8 @@
             }
         });
 
-        // 4. 캡처를 위해 잠시 보이게
-        reportContainer.style.display = 'block';
+        // 4. 캡처를 위해 화면 영역으로 렌더링 (보이지는 않음)
+        reportContainer.style.visibility = 'visible';
         
         // 5. 렌더링 대기 후 캡처
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -906,12 +971,10 @@
             scale: 1.5, // RTDB 저장 용량을 위해 해상도 최적화
             useCORS: true, 
             backgroundColor: '#ffffff', 
-            scrollY: 0,
-            scrollX: 0,
             windowWidth: 800
         });
 
-        reportContainer.style.display = 'none';
+        reportContainer.style.visibility = 'hidden';
         reportAvgChartInstance.destroy();
         reportPredChartInstance.destroy();
 
